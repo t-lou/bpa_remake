@@ -29,7 +29,7 @@ int main(int argc, char **argv)
   //Pivoter pivoter(cloud_in, 0.02);
   Pivoter pivoter;
 
-  pcl::PolygonMesh::Ptr mesh = pivoter.proceed(cloud_in, 0.03);
+  pcl::PolygonMesh::Ptr mesh = pivoter.proceed(cloud_in, 0.03, false);
   pcl::io::savePLYFileBinary("/home/tlou/mesh1.ply", *mesh);
   return 0;
 }

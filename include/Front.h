@@ -44,6 +44,8 @@ public:
 
   void clear();
 
+  void prepareDirtyFix(std::vector<bool> &isUsed);
+
   typedef boost::shared_ptr<Front> Ptr;
   typedef boost::shared_ptr<Front const> ConstPtr;
 };

@@ -28,9 +28,11 @@ protected:
   bool findSeed(pcl::Vertices::Ptr &seed, pcl::PointNormal &center,
                 bool &isBackBall);
 
-  bool pivot(const Edge &edge, uint32_t &idExtended,
+  bool pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtended,
              pcl::PointNormal &centerJr, int &idInvolvmentFront,
              bool &isBackBool) const;
+
+  void proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh);
 
   size_t getNumUsedPoint() const;
 

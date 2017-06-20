@@ -30,13 +30,46 @@ bool is_positions_near(const Eigen::Vector3f &pos0, const Eigen::Vector3f &pos1,
       || (pos2 - pos0).norm() < threshold;
 }
 
-size_t num_point_in_sphere(const pcl::PointNormal &center, const float radius,
-                           const pcl::KdTreeFLANN<pcl::PointNormal> kdtree)
+std::vector<int> get_id_point_in_sphere(const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree,
+                                        const pcl::PointNormal &center,
+                                        const double radius)
 {
   std::vector<int> indices;
   std::vector<float> sqr_distances;
   kdtree.radiusSearch(center, radius, indices, sqr_distances);
-  return indices.size();
+  return indices;
+}
+
+//size_t num_point_in_sphere(const pcl::PointNormal &center, const float radius,
+//                           const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree)
+//{
+//  std::vector<int> indices;
+//  std::vector<float> sqr_distances;
+//  kdtree.radiusSearch(center, radius, indices, sqr_distances);
+//  return indices.size();
+//}
+
+size_t num_point_in_sphere(const pcl::PointNormal &center, const float radius,
+                           const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree,
+                           const bool is_count_all, const std::vector<bool> &is_used)
+{
+  std::vector<int> indices = get_id_point_in_sphere(kdtree, center, radius);
+  if(is_count_all)
+  {
+    return indices.size();
+  }
+  else
+  {
+    size_t count = 0;
+    for(std::vector<int>::iterator it = indices.begin(); it != indices.end(); ++it)
+    {
+      if(!is_used.at(*it))
+      {
+        ++count;
+      }
+    }
+    return count;
+  }
 }
 
 boost::shared_ptr<pcl::PointNormal> vec2pointnormal(const Eigen::Vector3f &vector)
@@ -64,10 +97,36 @@ bool is_normal_consistent(const Eigen::Vector3f &normal, std::vector<uint32_t> &
   return count_consistent >= 2;
 }
 
+Eigen::Vector3f get_circle_center(const Eigen::Vector3f &pt0, const Eigen::Vector3f &pt1,
+                                  const Eigen::Vector3f &pt2)
+{
+  // code from https://github.com/rodschulz/BPA, get the center
+  const Eigen::Vector3f d10 = pt1 - pt0;
+  const Eigen::Vector3f d20 = pt2 - pt0;
+  const Eigen::Vector3f d01 = pt0 - pt1;
+  const Eigen::Vector3f d12 = pt1 - pt2;
+  const Eigen::Vector3f d21 = pt2 - pt1;
+  const Eigen::Vector3f d02 = pt0 - pt2;
+
+  float norm01 = d01.norm();
+  float norm12 = d12.norm();
+  float norm02 = d02.norm();
+
+  float norm01C12 = d01.cross(d12).norm();
+
+  float alpha = (norm12 * norm12 * d01.dot(d02)) / (2.0f * norm01C12 * norm01C12);
+  float beta = (norm02 * norm02 * d10.dot(d12)) / (2.0f * norm01C12 * norm01C12);
+  float gamma = (norm01 * norm01 * d20.dot(d21)) / (2.0f * norm01C12 * norm01C12);
+
+  return alpha * pt0 + beta * pt1 + gamma * pt2;
+}
+
 boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                                                     const pcl::KdTreeFLANN<pcl::PointNormal> kdtree,
                                                     const double radius,
-                                                    const bool isBackFirst,
+                                                    const bool is_back_first,
+                                                    const bool is_count_all,
+                                                    const std::vector<bool> &is_used,
                                                     std::vector<uint32_t> &index,
                                                     bool &is_back_ball)
 {
@@ -86,26 +145,7 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
 
   if(!is_positions_near(pos0, pos1, pos2, thres_near) && fabs(vec0.dot(vec1)) < cos_10)
   {
-    // code from https://github.com/rodschulz/BPA, get the center
-    const Eigen::Vector3f d10 = pos1 - pos0;
-    const Eigen::Vector3f d20 = pos2 - pos0;
-    const Eigen::Vector3f d01 = pos0 - pos1;
-    const Eigen::Vector3f d12 = pos1 - pos2;
-    const Eigen::Vector3f d21 = pos2 - pos1;
-    const Eigen::Vector3f d02 = pos0 - pos2;
-
-    float norm01 = d01.norm();
-    float norm12 = d12.norm();
-    float norm02 = d02.norm();
-
-    float norm01C12 = d01.cross(d12).norm();
-
-    float alpha = (norm12 * norm12 * d01.dot(d02)) / (2 * norm01C12 * norm01C12);
-    float beta = (norm02 * norm02 * d10.dot(d12)) / (2 * norm01C12 * norm01C12);
-    float gamma = (norm01 * norm01 * d20.dot(d21)) / (2 * norm01C12 * norm01C12);
-
-    Eigen::Vector3f center_circle = alpha * pos0 + beta * pos1 + gamma * pos2;
-    // end of rodschulz/BPA code
+    Eigen::Vector3f center_circle = get_circle_center(pos0, pos1, pos2);
 
     // move to distance _radius
     float radius_planar = (center_circle - pos0).norm();
@@ -122,10 +162,11 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
       }
       normal *= dist_normal;
 
-      if(isBackFirst)
+      if(is_back_first)
       {
         center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle - normal));
-        if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+        if(num_point_in_sphere(*center_candidate, search_radius,
+                               kdtree, is_count_all, is_used) <= 3)
         {
           center = center_candidate;
           is_back_ball = true;
@@ -133,7 +174,8 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
         else
         {
           center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle + normal));
-          if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+          if(num_point_in_sphere(*center_candidate, search_radius,
+                                 kdtree, is_count_all, is_used) <= 3)
           {
             center = center_candidate;
             is_back_ball = false;
@@ -143,7 +185,8 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
       else
       {
         center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle + normal));
-        if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+        if(num_point_in_sphere(*center_candidate, search_radius,
+                               kdtree, is_count_all, is_used) <= 3)
         {
           center = center_candidate;
           is_back_ball = false;
@@ -151,7 +194,8 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
         else
         {
           center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle - normal));
-          if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+          if(num_point_in_sphere(*center_candidate, search_radius,
+                                 kdtree, is_count_all, is_used) <= 3)
           {
             center = center_candidate;
             is_back_ball = true;
@@ -191,7 +235,25 @@ float get_distance_point_place(const Eigen::Vector4f &plane,
   return plane(3) + point.getVector3fMap().dot(plane.segment(0, 3));
 }
 
-bool Pivoter::pivot(const Edge &edge, uint32_t &idExtended,
+float get_angle_rotation(const Eigen::Vector3f &point0, const Eigen::Vector3f &point1,
+                         const Eigen::Vector3f &center, const Eigen::Vector4f &plane)
+{
+  Eigen::Vector3f vc0 = point0 - center;
+  Eigen::Vector3f vc1 = point1 - center;
+  vc0.normalize();
+  vc1.normalize();
+
+  float sin_ = vc0.cross(-Eigen::Vector3f(plane.segment(0, 3))).dot(vc1);
+  float cos_ = vc0.dot(vc1);
+  float angle = atan2(sin_, cos_);
+  if(angle < 0.0f) // -pi~pi -> 0~2pi
+  {
+    angle += (float)(2.0 * M_PI);
+  }
+  return angle;
+}
+
+bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtended,
                     pcl::PointNormal &centerJr, int &idInvolvmentFront,
                     bool &isBackBool) const
 {
@@ -205,21 +267,15 @@ bool Pivoter::pivot(const Edge &edge, uint32_t &idExtended,
   // pivot opposite to normal direction, change direction for angle
   const Eigen::Vector4f plane = edge.isBackBall() ?
         get_plane_between(v0, v1) : get_plane_between(v1, v0);
-  pcl::PointNormal mid_pt;
   pcl::PointCloud<pcl::PointNormal> center_candidates;
   std::vector<float> dot_candidates;
   std::vector<int> involve_candidates;
   std::vector<uint32_t> id_candidates;
   std::vector<bool> is_back_candidates;
 
-  std::vector<int> indices;
-  std::vector<float> sqr_distances;
+  const double search_radius = _radius * 2.0;
   std::vector<uint32_t> point3(3, 0);
-  double search_radius = _radius * 2.0;
-  mid_pt.x = mid(0);
-  mid_pt.y = mid(1);
-  mid_pt.z = mid(2);
-  _kdtree.radiusSearch(mid_pt, search_radius, indices, sqr_distances);
+  std::vector<int> indices = get_id_point_in_sphere(_kdtree, *vec2pointnormal(mid), search_radius);
 
   center_candidates.reserve(indices.size());
   dot_candidates.reserve(indices.size());
@@ -245,25 +301,14 @@ bool Pivoter::pivot(const Edge &edge, uint32_t &idExtended,
     {
       bool is_back_bool;
       boost::shared_ptr<pcl::PointNormal> center_jr
-          = get_ball_center(_cloud, _kdtree, _radius,
-                            edge.isBackBall(), point3, is_back_bool);
+          = get_ball_center(_cloud, _kdtree, _radius, edge.isBackBall(),
+                            isCountAll, _is_used, point3, is_back_bool);
 
       if(center_jr)
       {
-        Eigen::Vector3f vc0 = center - mid;
-        Eigen::Vector3f vc1 = center_jr->getVector3fMap() - mid;
-        vc0.normalize();
-        vc1.normalize();
-        float sin_ = vc0.cross(-Eigen::Vector3f(plane.segment(0, 3))).dot(vc1);
-        float cos_ = vc0.dot(vc1);
-        float angle = atan2(sin_, cos_);
-        if(angle < 0.0f) // -pi~pi -> 0~2pi
-        {
-          angle += (float)(2.0 * M_PI);
-        }
         center_candidates.push_back(*center_jr);
         involve_candidates.push_back(idInvolvmentFront);
-        dot_candidates.push_back(angle);
+        dot_candidates.push_back(get_angle_rotation(center, center_jr->getVector3fMap(), mid, plane));
         id_candidates.push_back((uint32_t)*it);
         is_back_candidates.push_back(is_back_bool);
       }
@@ -298,83 +343,88 @@ void Pivoter::prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
   _front = Front();
 }
 
+void Pivoter::proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
+{
+  Edge::Ptr edge;
+  while(edge = _front.getActiveEdge())
+  {
+    uint32_t id_ext;
+    pcl::PointNormal center_new;
+    int id_involve = -1;
+    bool is_back_ball;
+    if(pivot(*edge, isCountAll, id_ext, center_new, id_involve, is_back_ball))
+    {
+      const uint32_t id0 = edge->getIdVertice(0);
+      const uint32_t id1 = edge->getIdVertice(1);
+      pcl::Vertices triangle;
+      // add to mesh
+      triangle.vertices.reserve(3);
+      triangle.vertices.push_back(id0);
+      triangle.vertices.push_back(id1);
+      triangle.vertices.push_back(id_ext);
+      mesh->polygons.push_back(triangle);
+
+      if(_is_used.at(id_ext))
+      {
+        // if extended point is used, and pivoting succeeds, it should be in front.
+        // add the other edge to front
+        std::vector<uint32_t> e(2, 0);
+        uint32_t id_o;
+        switch(id_involve)
+        {
+          case 0:
+            // (idExtend, edge[0]) is in front, add (idExtend, edge[1])
+            e.at(0) = id_ext;
+            e.at(1) = id1;
+            id_o = id0;
+            _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
+            _front.removeEdge(id0, id_ext);
+            break;
+          case 1:
+            // (idExtend, edge[1]) is in front, add (idExtend, edge[0])
+            e.at(0) = id0;
+            e.at(1) = id_ext;
+            id_o = id1;
+            _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
+            _front.removeEdge(id_ext, id1);
+            break;
+          case 2:
+            _front.removeEdge(id_ext, id1);
+            _front.removeEdge(id0, id_ext);
+            break;
+          default:
+            break;
+        }
+      }
+      else
+      {
+        // total new point
+        _is_used.at(id_ext) = true;
+        _front.addPoint(*edge, id_ext, center_new, is_back_ball);
+      }
+
+      // pivoting succeeds, not boundary
+      _front.setFeedback(false);
+    } // if(pivot(*edge, id_ext, center_new, id_involve, is_back_ball))
+    else
+    {
+      // not pivoted
+      _front.setFeedback(true);
+    }
+  }
+}
+
 pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
                                        const double radius, const bool isDirty)
 {
   assert(cloud);
   pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh());
-  Edge::Ptr edge;
 
   prepare(cloud, radius);
 
   while(true)
   {
-    while(edge = _front.getActiveEdge())
-    {
-      uint32_t id_ext;
-      pcl::PointNormal center_new;
-      int id_involve = -1;
-      bool is_back_ball;
-      if(pivot(*edge, id_ext, center_new, id_involve, is_back_ball))
-      {
-        const uint32_t id0 = edge->getIdVertice(0);
-        const uint32_t id1 = edge->getIdVertice(1);
-        pcl::Vertices triangle;
-        // add to mesh
-        triangle.vertices.reserve(3);
-        triangle.vertices.push_back(id0);
-        triangle.vertices.push_back(id1);
-        triangle.vertices.push_back(id_ext);
-        mesh->polygons.push_back(triangle);
-
-        if(_is_used.at(id_ext))
-        {
-          // if extended point is used, and pivoting succeeds, it should be in front.
-          // add the other edge to front
-          std::vector<uint32_t> e(2, 0);
-          uint32_t id_o;
-          switch(id_involve)
-          {
-            case 0:
-              // (idExtend, edge[0]) is in front, add (idExtend, edge[1])
-              e.at(0) = id_ext;
-              e.at(1) = id1;
-              id_o = id0;
-              _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
-              _front.removeEdge(id0, id_ext);
-              break;
-            case 1:
-              // (idExtend, edge[1]) is in front, add (idExtend, edge[0])
-              e.at(0) = id0;
-              e.at(1) = id_ext;
-              id_o = id1;
-              _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
-              _front.removeEdge(id_ext, id1);
-              break;
-            case 2:
-              _front.removeEdge(id_ext, id1);
-              _front.removeEdge(id0, id_ext);
-              break;
-            default:
-              break;
-          }
-        }
-        else
-        {
-          // total new point
-          _is_used.at(id_ext) = true;
-          _front.addPoint(*edge, id_ext, center_new, is_back_ball);
-        }
-
-        // pivoting succeeds, not boundary
-        _front.setFeedback(false);
-      } // if(pivot(*edge, id_ext, center_new, id_involve, is_back_ball))
-      else
-      {
-        // not pivoted
-        _front.setFeedback(true);
-      }
-    }
+    proceedFront(true, mesh);
 
     pcl::Vertices::Ptr seed;
     pcl::PointNormal center;
@@ -397,6 +447,15 @@ pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::
       break;
   }
 
+  if(isDirty)
+  {
+    // pivot on boundaries
+    std::cout << mesh->polygons.size() << "\n";
+    _front.prepareDirtyFix(_is_used);
+    proceedFront(false, mesh);
+    std::cout << mesh->polygons.size() << "\n";
+  }
+
   pcl::toPCLPointCloud2(*_cloud, mesh->cloud);
 
   return mesh;
@@ -415,9 +474,7 @@ bool Pivoter::findSeed(pcl::Vertices::Ptr &seed, pcl::PointNormal &center,
     }
 
     std::vector<uint32_t> index3(3, 0);
-    std::vector<int> indices;
-    std::vector<float> sqr_distances;
-    _kdtree.radiusSearch(_cloud->at(id_search), search_radius, indices, sqr_distances);
+    std::vector<int> indices = get_id_point_in_sphere(_kdtree, _cloud->at(id_search), search_radius);
     if(indices.size() < 3)
     {
       continue;
@@ -446,14 +503,12 @@ bool Pivoter::findSeed(pcl::Vertices::Ptr &seed, pcl::PointNormal &center,
 
         bool is_back_ball;
         boost::shared_ptr<pcl::PointNormal> center_
-            = get_ball_center(_cloud, _kdtree, _radius, false, index3, is_back_ball);
+            = get_ball_center(_cloud, _kdtree, _radius, false,
+                              true, _is_used, index3, is_back_ball);
         if(center_)
         {
           seed = pcl::Vertices::Ptr(new pcl::Vertices());
-          seed->vertices.reserve(3);
-          seed->vertices.push_back(index3.at(0));
-          seed->vertices.push_back(index3.at(1));
-          seed->vertices.push_back(index3.at(2));
+          seed->vertices = index3;
           center = *center_;
           isBackBall = is_back_ball;
           _is_used.at(index3.at(0)) = true;

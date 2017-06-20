@@ -153,4 +153,18 @@ void Front::clear()
   _currentEdge.reset();
 }
 
+void Front::prepareDirtyFix(std::vector<bool> &isUsed)
+{
+  std::fill(isUsed.begin(), isUsed.end(), true);
+  for(std::map<Signature, Edge>::iterator it = _boundary.begin();
+      it != _boundary.end(); ++it)
+  {
+    isUsed.at(it->first.first) = false;
+    isUsed.at(it->first.second) = false;
+  }
+
+  _boundary.swap(_front);
+  _boundary.clear();
+}
+
 #endif
