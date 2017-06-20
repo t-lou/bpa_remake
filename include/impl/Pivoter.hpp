@@ -67,6 +67,7 @@ bool is_normal_consistent(const Eigen::Vector3f &normal, std::vector<uint32_t> &
 boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                                                     const pcl::KdTreeFLANN<pcl::PointNormal> kdtree,
                                                     const double radius,
+                                                    const bool isBackFirst,
                                                     std::vector<uint32_t> &index,
                                                     bool &is_back_ball)
 {
@@ -121,19 +122,40 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::P
       }
       normal *= dist_normal;
 
-      center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle + normal));
-      if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
-      {
-        center = center_candidate;
-        is_back_ball = false;
-      }
-      else
+      if(isBackFirst)
       {
         center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle - normal));
         if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
         {
           center = center_candidate;
           is_back_ball = true;
+        }
+        else
+        {
+          center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle + normal));
+          if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+          {
+            center = center_candidate;
+            is_back_ball = false;
+          }
+        }
+      }
+      else
+      {
+        center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle + normal));
+        if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+        {
+          center = center_candidate;
+          is_back_ball = false;
+        }
+        else
+        {
+          center_candidate = vec2pointnormal(Eigen::Vector3f(center_circle - normal));
+          if(num_point_in_sphere(*center_candidate, search_radius, kdtree) <= 3)
+          {
+            center = center_candidate;
+            is_back_ball = true;
+          }
         }
       }
     }
@@ -223,7 +245,8 @@ bool Pivoter::pivot(const Edge &edge, uint32_t &idExtended,
     {
       bool is_back_bool;
       boost::shared_ptr<pcl::PointNormal> center_jr
-          = get_ball_center(_cloud, _kdtree, _radius, point3, is_back_bool);
+          = get_ball_center(_cloud, _kdtree, _radius,
+                            edge.isBackBall(), point3, is_back_bool);
 
       if(center_jr)
       {
@@ -272,11 +295,11 @@ void Pivoter::prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
   _is_used.clear();
   _is_used.resize(cloud->size(), false);
 
-  _front = Front(_cloud->size());
+  _front = Front();
 }
 
 pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
-                                       const double radius)
+                                       const double radius, const bool isDirty)
 {
   assert(cloud);
   pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh());
@@ -342,6 +365,14 @@ pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::
           _is_used.at(id_ext) = true;
           _front.addPoint(*edge, id_ext, center_new, is_back_ball);
         }
+
+        // pivoting succeeds, not boundary
+        _front.setFeedback(false);
+      } // if(pivot(*edge, id_ext, center_new, id_involve, is_back_ball))
+      else
+      {
+        // not pivoted
+        _front.setFeedback(true);
       }
     }
 
@@ -415,7 +446,7 @@ bool Pivoter::findSeed(pcl::Vertices::Ptr &seed, pcl::PointNormal &center,
 
         bool is_back_ball;
         boost::shared_ptr<pcl::PointNormal> center_
-            = get_ball_center(_cloud, _kdtree, _radius, index3, is_back_ball);
+            = get_ball_center(_cloud, _kdtree, _radius, false, index3, is_back_ball);
         if(center_)
         {
           seed = pcl::Vertices::Ptr(new pcl::Vertices());

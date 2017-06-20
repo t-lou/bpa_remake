@@ -39,7 +39,7 @@ public:
   ~Pivoter();
 
   pcl::PolygonMesh::Ptr proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
-                                const double radius);
+                                const double radius, const bool isDirty = false);
 
   typedef boost::shared_ptr<Pivoter> Ptr;
   typedef boost::shared_ptr<Pivoter const> ConstPtr;

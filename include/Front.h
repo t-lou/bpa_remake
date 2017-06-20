@@ -14,11 +14,11 @@ class Front
   typedef std::pair<uint32_t, uint32_t> Signature;
 protected:
   std::map<Signature, Edge> _front;
-//  std::list<Edge> _front;
-  std::vector<int> _num_occurence;
+  std::map<Signature, Edge> _boundary;
+  Edge::Ptr _currentEdge;
 
 public:
-  Front(const size_t numPoints = 0);
+  Front();
   ~Front();
 
   Edge::Ptr getActiveEdge();
@@ -32,8 +32,6 @@ public:
 
   void addEdge(const Edge &edge);
 
-  bool isPointIn(const uint32_t &id) const;
-
   size_t getNumActiveFront() const;
 
   bool isEdgeIn(const Edge &edge) const;
@@ -41,6 +39,10 @@ public:
   int getConditionEdgeIn(const Edge &edge, const uint32_t &idExtended) const;
 
   void removeEdge(const uint32_t id0, const uint32_t id1);
+
+  void setFeedback(const bool isBoundary);
+
+  void clear();
 
   typedef boost::shared_ptr<Front> Ptr;
   typedef boost::shared_ptr<Front const> ConstPtr;

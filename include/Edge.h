@@ -35,6 +35,8 @@ public:
 
   bool isBackBall() const;
 
+  std::pair<uint32_t, uint32_t> getSignature() const;
+
 //  bool operator == (const Edge &another) const;
 
   typedef boost::shared_ptr<Edge> Ptr;

@@ -2,12 +2,13 @@
 #define FRONT_HPP
 
 #include <algorithm>
+#include <boost/make_shared.hpp>
 
 #include "Front.h"
 
-Front::Front(const size_t numPoints) :
-  _num_occurence(std::vector<int>(numPoints, 0))
+Front::Front()
 {
+  clear();
 }
 
 Front::~Front()
@@ -16,18 +17,22 @@ Front::~Front()
 
 Edge::Ptr Front::getActiveEdge()
 {
-  // TODO maximal usage is 2 times
   Edge::Ptr re;
   if(!_front.empty())
   {
-    --_num_occurence.at(_front.begin()->second.getIdVertice(0));
-    --_num_occurence.at(_front.begin()->second.getIdVertice(1));
-
-    re = Edge::Ptr(new Edge());
-    *re = _front.begin()->second;
+    re = boost::make_shared<Edge>(_front.begin()->second);
+    _currentEdge = re;
     _front.erase(_front.begin());
   }
   return re;
+}
+
+void Front::setFeedback(const bool isBoundary)
+{
+  if(isBoundary)
+  {
+    _boundary[_currentEdge->getSignature()] = *_currentEdge;
+  }
 }
 
 void Front::addTriangle(const pcl::Vertices::ConstPtr& seed,
@@ -67,19 +72,7 @@ void Front::addEdge(const Edge& edge)
   if(!isEdgeIn(edge))
   {
     _front[Signature(edge.getIdVertice(0), edge.getIdVertice(1))] = edge;
-
-    ++_num_occurence.at(edge.getIdVertice(0));
-    ++_num_occurence.at(edge.getIdVertice(1));
-//    std::cout << "add " << edge.getIdVertice(0) << "  " << edge.getIdVertice(1) << "\n";
   }
-//  else
-//    std::cout<< edge.getIdVertice(0) << "  " << edge.getIdVertice(1) << " added before\n";
-}
-
-bool Front::isPointIn(const uint32_t& id) const
-{
-  assert(id < _num_occurence.size());
-  return _num_occurence.at(id) > 0;
 }
 
 size_t Front::getNumActiveFront() const
@@ -89,6 +82,7 @@ size_t Front::getNumActiveFront() const
 
 bool Front::isEdgeIn(const Edge& edge) const
 {
+  // toggle comment to delete one-directionally
   return _front.find(Signature(edge.getIdVertice(0), edge.getIdVertice(1))) != _front.end()
       || _front.find(Signature(edge.getIdVertice(1), edge.getIdVertice(0))) != _front.end();
 //  return _front.find(Signature(edge.getIdVertice(0), edge.getIdVertice(1))) != _front.end();
@@ -140,22 +134,23 @@ void Front::removeEdge(const uint32_t id0, const uint32_t id1)
     if(loc != _front.end())
     {
       _front.erase(loc);
-      --_num_occurence.at(id0);
-      --_num_occurence.at(id1);
-//      std::cout << "remove " << id0 << "  " << id1 << "\n";
     }
-    else
+    else // comment to delete one-directionally
     {
       loc = _front.find(Signature(id1, id0));
       if(loc != _front.end())
       {
         _front.erase(loc);
-        --_num_occurence.at(id0);
-        --_num_occurence.at(id1);
-//        std::cout << "remove " << id1 << "  " << id0 << "\n";
       }
     }
   }
+}
+
+void Front::clear()
+{
+  _front.clear();
+  _boundary.clear();
+  _currentEdge.reset();
 }
 
 #endif

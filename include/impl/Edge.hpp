@@ -7,7 +7,6 @@ Edge::Edge()
 {
 }
 
-
 Edge::Edge(const uint32_t id0, const uint32_t id1)
 {
   _idVertices.resize(2);
@@ -66,6 +65,12 @@ void Edge::setIdVertice(const size_t id, const uint32_t idVertice)
 bool Edge::isBackBall() const
 {
   return _isBackBall;
+}
+
+std::pair<uint32_t, uint32_t> Edge::getSignature() const
+{
+  assert(_idVertices.size() == 2);
+  return std::pair<uint32_t, uint32_t>(_idVertices.at(0), _idVertices.at(1));
 }
 
 #endif
