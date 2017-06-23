@@ -73,4 +73,10 @@ std::pair<uint32_t, uint32_t> Edge::getSignature() const
   return std::pair<uint32_t, uint32_t>(_idVertices.at(0), _idVertices.at(1));
 }
 
+std::pair<uint32_t, uint32_t> Edge::getSignatureReverse() const
+{
+  assert(_idVertices.size() == 2);
+  return std::pair<uint32_t, uint32_t>(_idVertices.at(1), _idVertices.at(0));
+}
+
 #endif

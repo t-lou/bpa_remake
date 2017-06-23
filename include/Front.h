@@ -3,6 +3,7 @@
 
 #include <list>
 #include <map>
+#include <set>
 
 #include <pcl/point_types.h>
 #include <pcl/PolygonMesh.h>
@@ -15,6 +16,7 @@ class Front
 protected:
   std::map<Signature, Edge> _front;
   std::map<Signature, Edge> _boundary;
+  std::set<Signature> _finished;
   Edge::Ptr _currentEdge;
 
 public:
@@ -45,6 +47,8 @@ public:
   void clear();
 
   void prepareDirtyFix(std::vector<bool> &isUsed);
+
+  bool isEdgeFinished(const Edge &edge);
 
   typedef boost::shared_ptr<Front> Ptr;
   typedef boost::shared_ptr<Front const> ConstPtr;

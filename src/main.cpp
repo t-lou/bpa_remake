@@ -18,6 +18,14 @@ typename pcl::PointCloud<T>::Ptr load_ply(const std::string &filename)
   return cloud;
 }
 
+pcl::PCLPointCloud2::Ptr load_pointcloud2(const std::string &filename)
+{
+  pcl::PCLPointCloud2::Ptr cloud(new pcl::PCLPointCloud2());
+  pcl::PLYReader reader;
+  reader.read(filename, *cloud);
+  return cloud;
+}
+
 int main(int argc, char **argv)
 {
   pcl::PointCloud<pcl::PointNormal>::Ptr cloud_in
@@ -29,7 +37,7 @@ int main(int argc, char **argv)
   //Pivoter pivoter(cloud_in, 0.02);
   Pivoter pivoter;
 
-  pcl::PolygonMesh::Ptr mesh = pivoter.proceed(cloud_in, 0.03, false);
+  pcl::PolygonMesh::Ptr mesh = pivoter.proceed(cloud_in, 0.03);
   pcl::io::savePLYFileBinary("/home/tlou/mesh1.ply", *mesh);
   return 0;
 }

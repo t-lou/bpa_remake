@@ -254,8 +254,7 @@ float get_angle_rotation(const Eigen::Vector3f &point0, const Eigen::Vector3f &p
 }
 
 bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtended,
-                    pcl::PointNormal &centerJr, int &idInvolvmentFront,
-                    bool &isBackBool) const
+                    pcl::PointNormal &centerJr, bool &isBackBool) const
 {
   const uint32_t id0 = edge.getIdVertice(0);
   const uint32_t id1 = edge.getIdVertice(1);
@@ -269,7 +268,6 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
         get_plane_between(v0, v1) : get_plane_between(v1, v0);
   pcl::PointCloud<pcl::PointNormal> center_candidates;
   std::vector<float> dot_candidates;
-  std::vector<int> involve_candidates;
   std::vector<uint32_t> id_candidates;
   std::vector<bool> is_back_candidates;
 
@@ -279,7 +277,6 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
 
   center_candidates.reserve(indices.size());
   dot_candidates.reserve(indices.size());
-  involve_candidates.reserve(indices.size());
   id_candidates.reserve(indices.size());
   is_back_candidates.reserve(indices.size());
   for(std::vector<int>::iterator it = indices.begin(); it != indices.end(); ++it)
@@ -295,8 +292,6 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
       continue;
     }
 
-    idInvolvmentFront = _is_used.at(*it) ? _front.getConditionEdgeIn(edge, (uint32_t)(*it)) : -1;
-
 //    if(!_is_used.at(*it) || idInvolvmentFront >= 0)
     {
       bool is_back_bool;
@@ -307,8 +302,8 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
       if(center_jr)
       {
         center_candidates.push_back(*center_jr);
-        involve_candidates.push_back(idInvolvmentFront);
-        dot_candidates.push_back(get_angle_rotation(center, center_jr->getVector3fMap(), mid, plane));
+        dot_candidates.push_back(get_angle_rotation(center, center_jr->getVector3fMap(),
+                                                    mid, plane));
         id_candidates.push_back((uint32_t)*it);
         is_back_candidates.push_back(is_back_bool);
       }
@@ -320,7 +315,6 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
                                std::min_element(dot_candidates.begin(), dot_candidates.end()));
     idExtended = id_candidates.at(id_min);
     centerJr = center_candidates.at(id_min);
-    idInvolvmentFront = involve_candidates.at(id_min);
     isBackBool = is_back_candidates.at(id_min);
     return true;
   }
@@ -350,9 +344,9 @@ void Pivoter::proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
   {
     uint32_t id_ext;
     pcl::PointNormal center_new;
-    int id_involve = -1;
     bool is_back_ball;
-    if(pivot(*edge, isCountAll, id_ext, center_new, id_involve, is_back_ball))
+    if(!_front.isEdgeFinished(*edge)
+       && pivot(*edge, isCountAll, id_ext, center_new, is_back_ball))
     {
       const uint32_t id0 = edge->getIdVertice(0);
       const uint32_t id1 = edge->getIdVertice(1);
@@ -364,48 +358,12 @@ void Pivoter::proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
       triangle.vertices.push_back(id_ext);
       mesh->polygons.push_back(triangle);
 
-      if(_is_used.at(id_ext))
-      {
-        // if extended point is used, and pivoting succeeds, it should be in front.
-        // add the other edge to front
-        std::vector<uint32_t> e(2, 0);
-        uint32_t id_o;
-        switch(id_involve)
-        {
-          case 0:
-            // (idExtend, edge[0]) is in front, add (idExtend, edge[1])
-            e.at(0) = id_ext;
-            e.at(1) = id1;
-            id_o = id0;
-            _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
-            _front.removeEdge(id0, id_ext);
-            break;
-          case 1:
-            // (idExtend, edge[1]) is in front, add (idExtend, edge[0])
-            e.at(0) = id0;
-            e.at(1) = id_ext;
-            id_o = id1;
-            _front.addEdge(Edge(e, id_o, _radius, center_new, is_back_ball));
-            _front.removeEdge(id_ext, id1);
-            break;
-          case 2:
-            _front.removeEdge(id_ext, id1);
-            _front.removeEdge(id0, id_ext);
-            break;
-          default:
-            break;
-        }
-      }
-      else
-      {
-        // total new point
-        _is_used.at(id_ext) = true;
-        _front.addPoint(*edge, id_ext, center_new, is_back_ball);
-      }
+      _is_used.at(id_ext) = true;
+      _front.addPoint(*edge, id_ext, center_new, is_back_ball);
 
       // pivoting succeeds, not boundary
       _front.setFeedback(false);
-    } // if(pivot(*edge, id_ext, center_new, id_involve, is_back_ball))
+    } // if(pivot(*edge, id_ext, center_new, is_back_ball))
     else
     {
       // not pivoted
@@ -415,7 +373,7 @@ void Pivoter::proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
 }
 
 pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
-                                       const double radius, const bool isDirty)
+                                       const double radius)
 {
   assert(cloud);
   pcl::PolygonMesh::Ptr mesh(new pcl::PolygonMesh());
@@ -441,19 +399,6 @@ pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::
       // cannot find proper seed
       break;
     }
-
-    std::cout << mesh->polygons.size() << "\n";
-    if(mesh->polygons.size() > 1000)
-      break;
-  }
-
-  if(isDirty)
-  {
-    // pivot on boundaries
-    std::cout << mesh->polygons.size() << "\n";
-    _front.prepareDirtyFix(_is_used);
-    proceedFront(false, mesh);
-    std::cout << mesh->polygons.size() << "\n";
   }
 
   pcl::toPCLPointCloud2(*_cloud, mesh->cloud);

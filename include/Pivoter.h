@@ -29,8 +29,7 @@ protected:
                 bool &isBackBall);
 
   bool pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtended,
-             pcl::PointNormal &centerJr, int &idInvolvmentFront,
-             bool &isBackBool) const;
+             pcl::PointNormal &centerJr, bool &isBackBool) const;
 
   void proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh);
 
@@ -41,7 +40,7 @@ public:
   ~Pivoter();
 
   pcl::PolygonMesh::Ptr proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
-                                const double radius, const bool isDirty = false);
+                                const double radius);
 
   typedef boost::shared_ptr<Pivoter> Ptr;
   typedef boost::shared_ptr<Pivoter const> ConstPtr;

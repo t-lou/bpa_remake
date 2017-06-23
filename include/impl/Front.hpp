@@ -33,6 +33,7 @@ void Front::setFeedback(const bool isBoundary)
   {
     _boundary[_currentEdge->getSignature()] = *_currentEdge;
   }
+  _finished.insert(_currentEdge->getSignature());
 }
 
 void Front::addTriangle(const pcl::Vertices::ConstPtr& seed,
@@ -83,9 +84,8 @@ size_t Front::getNumActiveFront() const
 bool Front::isEdgeIn(const Edge& edge) const
 {
   // toggle comment to delete one-directionally
-  return _front.find(Signature(edge.getIdVertice(0), edge.getIdVertice(1))) != _front.end()
-      || _front.find(Signature(edge.getIdVertice(1), edge.getIdVertice(0))) != _front.end();
-//  return _front.find(Signature(edge.getIdVertice(0), edge.getIdVertice(1))) != _front.end();
+  return _front.find(edge.getSignature()) != _front.end()
+      || _front.find(edge.getSignatureReverse()) != _front.end();
 }
 
 int Front::getConditionEdgeIn(const Edge& edge, const uint32_t& idExtended) const
@@ -165,6 +165,51 @@ void Front::prepareDirtyFix(std::vector<bool> &isUsed)
 
   _boundary.swap(_front);
   _boundary.clear();
+}
+
+//void Front::prepareDirtyFix(std::vector<bool> &isUsed)
+//{
+//  std::map<Signature, int> count_edge;
+//  for(std::map<Signature, Edge>::iterator it = _boundary.begin();
+//      it != _boundary.end(); ++it)
+//  {
+//    if(count_edge.find(it->first) != count_edge.end())
+//    {
+//      count_edge[it->first] += 1;
+//    }
+//    else if(count_edge.find(Signature(it->first.second, it->first.first)) != count_edge.end())
+//    {
+//      count_edge[Signature(it->first.second, it->first.first)] += 1;
+//    }
+//    else
+//    {
+//      count_edge[it->first] += 1;
+//    }
+//  }
+
+//  std::fill(isUsed.begin(), isUsed.end(), true);
+//  for(std::map<Signature, int>::iterator it = count_edge.begin();
+//      it != count_edge.end(); ++it)
+//  {
+//    if(it->second < 2)
+//    {
+//      isUsed.at(it->first.first) = false;
+//      isUsed.at(it->first.second) = false;
+//    }
+//  }
+//}
+
+bool Front::isEdgeFinished(const Edge &edge)
+{
+  if(_finished.find(edge.getSignature()) != _finished.end()
+     || _finished.find(edge.getSignatureReverse()) != _finished.end())
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 #endif
