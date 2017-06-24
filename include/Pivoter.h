@@ -20,7 +20,7 @@ protected:
   Front _front;
   double _radius;
 
-  void prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
+  void prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                const double radius);
 
 //  std::pair<pcl::Vertices::Ptr, pcl::PointNormal> findSeed();
@@ -39,7 +39,7 @@ public:
   Pivoter();
   ~Pivoter();
 
-  pcl::PolygonMesh::Ptr proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
+  pcl::PolygonMesh::Ptr proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                                 const double radius);
 
   typedef boost::shared_ptr<Pivoter> Ptr;

@@ -122,7 +122,7 @@ Eigen::Vector3f get_circle_center(const Eigen::Vector3f &pt0, const Eigen::Vecto
 }
 
 boost::shared_ptr<pcl::PointNormal> get_ball_center(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
-                                                    const pcl::KdTreeFLANN<pcl::PointNormal> kdtree,
+                                                    const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree,
                                                     const double radius,
                                                     const bool is_back_first,
                                                     const bool is_count_all,
@@ -271,7 +271,8 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
   std::vector<uint32_t> id_candidates;
   std::vector<bool> is_back_candidates;
 
-  const double search_radius = _radius * 2.0;
+  const double search_radius = sqrt(_radius*_radius - (v0-mid).dot(Eigen::Vector3f(v0-mid)))
+                               + _radius;
   std::vector<uint32_t> point3(3, 0);
   std::vector<int> indices = get_id_point_in_sphere(_kdtree, *vec2pointnormal(mid), search_radius);
 
@@ -324,7 +325,7 @@ bool Pivoter::pivot(const Edge &edge, const bool isCountAll, uint32_t &idExtende
   }
 }
 
-void Pivoter::prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
+void Pivoter::prepare(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                       const double radius)
 {
   _radius = radius;
@@ -372,7 +373,7 @@ void Pivoter::proceedFront(const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
   }
 }
 
-pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr cloud,
+pcl::PolygonMesh::Ptr Pivoter::proceed(const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
                                        const double radius)
 {
   assert(cloud);
