@@ -25,19 +25,18 @@ is_file_exist (const std::string &filename)
 
 /**
  * Smooths the point cloud and compute the normal of points.
- * For simplicity only output pcl::PointCloud<pcl::PointNormal>
  * @tparam T
  * @param cloud input point cloud
  * @param radius radius for searching neighboring points
  * @param is_compute_normal whether to computer the normal vectors
  * @return
  */
-template<class T>
-pcl::PointCloud<pcl::PointNormal>::Ptr
+template<typename T, typename NT>
+typename pcl::PointCloud<NT>::Ptr
 smooth (const typename pcl::PointCloud<T>::ConstPtr &cloud, const double radius, const bool is_compute_normal)
 {
-  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_out (new pcl::PointCloud<pcl::PointNormal> ());
-  typename pcl::MovingLeastSquares<T, pcl::PointNormal> mls;
+  typename pcl::PointCloud<NT>::Ptr cloud_out (new pcl::PointCloud<NT> ());
+  typename pcl::MovingLeastSquares<T, NT> mls;
   typename pcl::search::KdTree<T>::Ptr tree (new pcl::search::KdTree<T> ());
 
   mls.setInputCloud (cloud);
@@ -117,29 +116,28 @@ load_pointcloud2 (const std::string &filename)
 }
 
 /**
- * Load the point cloud in filename as pcl::PointCloud<pcl::PointNormal>.
- * If the cloud contains no normal, it would be computed with MLS
+ * Load the point cloud in filename.
  * @param filename
  * @param radius_mls
  * @return
  */
-pcl::PointCloud<pcl::PointNormal>::Ptr
+pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr
 load_cloud (const std::string &filename, const double radius_mls)
 {
-  pcl::PointCloud<pcl::PointNormal>::Ptr re;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr re;
   pcl::PCLPointCloud2::Ptr cloud2 = load_pointcloud2 (filename);
   if (is_normal_in_field (cloud2))
   {
-    re = pcl::PointCloud<pcl::PointNormal>::Ptr (new pcl::PointCloud<pcl::PointNormal> ());
-    pcl::fromPCLPointCloud2<pcl::PointNormal> (*cloud2, *re);
-    re = filter_nan<pcl::PointNormal> (re);
+    re = pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr (new pcl::PointCloud<pcl::PointXYZRGBNormal> ());
+    pcl::fromPCLPointCloud2<pcl::PointXYZRGBNormal> (*cloud2, *re);
+    re = filter_nan<pcl::PointXYZRGBNormal> (re);
   }
   else
   {
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZ> ());
-    pcl::fromPCLPointCloud2<pcl::PointXYZ> (*cloud2, *cloud_xyz);
-    cloud_xyz = filter_nan<pcl::PointXYZ> (cloud_xyz);
-    re = smooth<pcl::PointXYZ> (cloud_xyz, radius_mls, true);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_xyz (new pcl::PointCloud<pcl::PointXYZRGB> ());
+    pcl::fromPCLPointCloud2<pcl::PointXYZRGB> (*cloud2, *cloud_xyz);
+    cloud_xyz = filter_nan<pcl::PointXYZRGB> (cloud_xyz);
+    re = smooth<pcl::PointXYZRGB, pcl::PointXYZRGBNormal> (cloud_xyz, radius_mls, true);
   }
   return re;
 }
@@ -158,14 +156,14 @@ main (int argc, char **argv)
   const double radius = atof (argv[3]);
   const double radius_mls = argc >= 5 ? atof (argv[4]) : radius * 2.0f;
 
-  if(!is_file_exist (fn_in))
+  if (!is_file_exist (fn_in))
   {
     std::cout << fn_in << " does not exist" << std::endl;
     return 1;
   }
 
-  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_in = load_cloud (fn_in, radius_mls);
-  Pivoter pivoter;
+  pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_in = load_cloud (fn_in, radius_mls);
+  Pivoter<pcl::PointXYZRGBNormal> pivoter;
 
   pcl::PolygonMesh::Ptr mesh = pivoter.proceed (cloud_in, radius);
   pcl::io::savePLYFileBinary (fn_out, *mesh);

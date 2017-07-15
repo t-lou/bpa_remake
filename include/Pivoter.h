@@ -12,43 +12,52 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/kdtree.h>
 
+template<typename PointNT>
 class Pivoter
 {
 protected:
   class Edge
   {
   protected:
-    std::vector<uint32_t> _idVertices;
-    uint32_t _idOpposite;
-    pcl::PointNormal _center;
+    std::vector<uint32_t> _id_vertices;
+    uint32_t _id_opposite;
+    PointNT _center;
     double _radius;
-    bool _isBackBall;
+    bool _is_back_ball;
 
   public:
     Edge ();
 
     Edge (const uint32_t id0, const uint32_t id1);
 
-    Edge (const std::vector<uint32_t> &edge, const uint32_t idOpposite, const double radius,
-          const pcl::PointNormal &center, const bool isBackBall = false);
+    Edge (const std::vector<uint32_t> &edge, const uint32_t id_opposite, const double radius, const PointNT &center,
+          const bool is_back_ball = false);
 
     ~Edge ();
 
-    double getRadius () const;
+    double
+    getRadius () const;
 
-    pcl::PointNormal getCenter () const;
+    PointNT
+    getCenter () const;
 
-    uint32_t getIdVertice (const size_t id) const;
+    uint32_t
+    getIdVertice (const size_t id) const;
 
-    uint32_t getIdOpposite () const;
+    uint32_t
+    getIdOpposite () const;
 
-    void setIdVertice (const size_t id, const uint32_t idVertice);
+    void
+    setIdVertice (const size_t id, const uint32_t id_vertice);
 
-    bool isBackBall () const;
+    bool
+    isBackBall () const;
 
-    std::pair<uint32_t, uint32_t> getSignature () const;
+    std::pair<uint32_t, uint32_t>
+    getSignature () const;
 
-    std::pair<uint32_t, uint32_t> getSignatureReverse () const;
+    std::pair<uint32_t, uint32_t>
+    getSignatureReverse () const;
 
     typedef boost::shared_ptr<Edge> Ptr;
     typedef boost::shared_ptr<Edge const> ConstPtr;
@@ -61,68 +70,77 @@ protected:
     std::map<Signature, Edge> _front;
     std::map<Signature, Edge> _boundary;
     std::set<Signature> _finished;
-    Edge::Ptr _currentEdge;
+    typename Edge::Ptr _currentEdge;
 
   public:
     Front ();
 
     ~Front ();
 
-    Edge::Ptr getActiveEdge ();
-
-    void addTriangle (const pcl::Vertices::ConstPtr &seed, const pcl::PointNormal &center, const double radius,
-                      const bool isBackBall);
+    typename Edge::Ptr
+    getActiveEdge ();
 
     void
-    addPoint (const Edge &lastEdge, const uint32_t idExtended, const pcl::PointNormal &center, const bool isBackBall);
+    addTriangle (const pcl::Vertices::ConstPtr &seed, const PointNT &center, const double radius,
+                 const bool is_back_ball);
 
-    void addEdge (const Edge &edge);
+    void
+    addPoint (const Edge &lastEdge, const uint32_t id_extended, const PointNT &center, const bool is_back_ball);
 
-    size_t getNumActiveFront () const;
+    void
+    addEdge (const Edge &edge);
 
-    bool isEdgeIn (const Edge &edge) const;
+    size_t
+    getNumActiveFront () const;
 
-    int getConditionEdgeIn (const Edge &edge, const uint32_t &idExtended) const;
+    bool
+    isEdgeIn (const Edge &edge) const;
 
-    void removeEdge (const uint32_t id0, const uint32_t id1);
+    void
+    removeEdge (const uint32_t id0, const uint32_t id1);
 
-    void setFeedback (const bool isBoundary);
+    void
+    setFeedback (const bool is_boundary);
 
-    void clear ();
+    void
+    clear ();
 
-    void prepareDirtyFix (std::vector<bool> &isUsed);
-
-    bool isEdgeFinished (const Edge &edge);
+    bool
+    isEdgeFinished (const Edge &edge);
 
     typedef boost::shared_ptr<Front> Ptr;
     typedef boost::shared_ptr<Front const> ConstPtr;
   };
 
 protected:
-  pcl::KdTreeFLANN<pcl::PointNormal> _kdtree;
-  pcl::PointCloud<pcl::PointNormal>::Ptr _cloud;
+  typename pcl::KdTreeFLANN<PointNT> _kdtree;
+  typename pcl::PointCloud<PointNT>::Ptr _cloud;
   std::vector<bool> _is_used;
   Front _front;
   double _radius;
 
-  void prepare (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius);
+  void
+  prepare (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud, const double radius);
 
-  bool findSeed (pcl::Vertices::Ptr &seed, pcl::PointNormal &center, bool &isBackBall);
+  bool
+  findSeed (pcl::Vertices::Ptr &seed, PointNT &center, bool &is_back_ball);
 
-  bool pivot (const Edge &edge, const bool isCountAll, uint32_t &idExtended, pcl::PointNormal &centerJr,
-              bool &isBackBool) const;
+  bool
+  pivot (const Edge &edge, uint32_t &id_extended, PointNT &center_new, bool &is_back_ball) const;
 
-  void proceedFront (const bool isCountAll, pcl::PolygonMesh::Ptr &mesh);
+  void
+  proceedFront (pcl::PolygonMesh::Ptr &mesh);
 
 public:
   Pivoter ();
 
   ~Pivoter ();
 
-  pcl::PolygonMesh::Ptr proceed (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius);
+  pcl::PolygonMesh::Ptr
+  proceed (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud, const double radius);
 
-  typedef boost::shared_ptr<Pivoter> Ptr;
-  typedef boost::shared_ptr<Pivoter const> ConstPtr;
+  typedef boost::shared_ptr<Pivoter<PointNT> > Ptr;
+  typedef boost::shared_ptr<Pivoter<PointNT> const> ConstPtr;
 };
 
 #endif
