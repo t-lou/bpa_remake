@@ -23,7 +23,8 @@ Pivoter::~Pivoter ()
  * @param v1
  * @return
  */
-Eigen::Vector4f get_plane_between (const Eigen::Vector3f &v0, const Eigen::Vector3f &v1)
+Eigen::Vector4f
+get_plane_between (const Eigen::Vector3f &v0, const Eigen::Vector3f &v1)
 {
   Eigen::Vector4f plane;
   Eigen::Vector3f normal = (v1 - v0);
@@ -40,8 +41,9 @@ Eigen::Vector4f get_plane_between (const Eigen::Vector3f &v0, const Eigen::Vecto
  * @param threshold threshold for whether two points are near
  * @return
  */
-bool is_positions_near (const Eigen::Vector3f &pos0, const Eigen::Vector3f &pos1, const Eigen::Vector3f &pos2,
-                        const float threshold)
+bool
+is_positions_near (const Eigen::Vector3f &pos0, const Eigen::Vector3f &pos1, const Eigen::Vector3f &pos2,
+                   const float threshold)
 {
   return (pos0 - pos1).norm () < threshold || (pos1 - pos2).norm () < threshold || (pos2 - pos0).norm () < threshold;
 }
@@ -73,15 +75,17 @@ get_id_point_in_sphere (const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree, const 
  * @param is_used a list indicating whether points with same index are used
  * @return
  */
-size_t num_point_in_sphere (const pcl::PointNormal &center, const float radius,
-                            const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree, const bool is_count_all,
-                            const std::vector<bool> &is_used)
+size_t
+num_point_in_sphere (const pcl::PointNormal &center, const float radius,
+                     const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree, const bool is_count_all,
+                     const std::vector<bool> &is_used)
 {
   std::vector<int> indices = get_id_point_in_sphere (kdtree, center, radius);
   if (is_count_all)
   {
     return indices.size ();
-  } else
+  }
+  else
   {
     size_t count = 0;
     for (std::vector<int>::const_iterator it = indices.begin (); it != indices.end (); ++it)
@@ -100,15 +104,17 @@ size_t num_point_in_sphere (const pcl::PointNormal &center, const float radius,
  * @param vector
  * @return
  */
-boost::shared_ptr<pcl::PointNormal> vec2pointnormal (const Eigen::Vector3f &vector)
+boost::shared_ptr<pcl::PointNormal>
+vec2pointnormal (const Eigen::Vector3f &vector)
 {
   boost::shared_ptr<pcl::PointNormal> pt = boost::shared_ptr<pcl::PointNormal> (new pcl::PointNormal ());
   pt->getVector3fMap () = vector;
   return pt;
 }
 
-bool is_normal_consistent (const Eigen::Vector3f &normal, std::vector<uint32_t> &index,
-                           const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud)
+bool
+is_normal_consistent (const Eigen::Vector3f &normal, std::vector<uint32_t> &index,
+                      const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud)
 {
   assert(index.size () == 3);
   int count_consistent = 0;
@@ -139,11 +145,11 @@ get_circle_center (const Eigen::Vector3f &point0, const Eigen::Vector3f &point1,
   return alpha * point0 + beta * point1 + gamma * point2;
 }
 
-boost::shared_ptr<pcl::PointNormal> get_ball_center (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
-                                                     const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree,
-                                                     const double radius, const bool is_back_first,
-                                                     const bool is_count_all, const std::vector<bool> &is_used,
-                                                     std::vector<uint32_t> &index, bool &is_back_ball)
+boost::shared_ptr<pcl::PointNormal>
+get_ball_center (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
+                 const pcl::KdTreeFLANN<pcl::PointNormal> &kdtree, const double radius, const bool is_back_first,
+                 const bool is_count_all, const std::vector<bool> &is_used, std::vector<uint32_t> &index,
+                 bool &is_back_ball)
 {
   boost::shared_ptr<pcl::PointNormal> center;
   const static float cos_10 = (float) cos (10.0 * M_PI / 180.0);
@@ -184,7 +190,8 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center (const pcl::PointCloud<pcl::
         {
           center = center_candidate;
           is_back_ball = true;
-        } else
+        }
+        else
         {
           center_candidate = vec2pointnormal (Eigen::Vector3f (center_circle + normal));
           if (num_point_in_sphere (*center_candidate, search_radius, kdtree, is_count_all, is_used) <= 3)
@@ -193,14 +200,16 @@ boost::shared_ptr<pcl::PointNormal> get_ball_center (const pcl::PointCloud<pcl::
             is_back_ball = false;
           }
         }
-      } else
+      }
+      else
       {
         center_candidate = vec2pointnormal (Eigen::Vector3f (center_circle + normal));
         if (num_point_in_sphere (*center_candidate, search_radius, kdtree, is_count_all, is_used) <= 3)
         {
           center = center_candidate;
           is_back_ball = false;
-        } else
+        }
+        else
         {
           center_candidate = vec2pointnormal (Eigen::Vector3f (center_circle - normal));
           if (num_point_in_sphere (*center_candidate, search_radius, kdtree, is_count_all, is_used) <= 3)
@@ -221,13 +230,14 @@ get_normal_triangle (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, c
 {
   assert(index.size () == 3);
   Eigen::Vector3f p0 = cloud->at (index.at (0)).getVector3fMap ();
-  Eigen::Vector3f normal = (cloud->at (index.at (1)).getVector3fMap () - p0).cross (
-    cloud->at (index.at (2)).getVector3fMap () - p0);
+  Eigen::Vector3f
+    normal = (cloud->at (index.at (1)).getVector3fMap () - p0).cross (cloud->at (index.at (2)).getVector3fMap () - p0);
   normal.normalize ();
   return normal;
 }
 
-void reorder (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, pcl::Vertices &triangle)
+void
+reorder (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, pcl::Vertices &triangle)
 {
   if (!is_normal_consistent (get_normal_triangle (cloud, triangle.vertices), triangle.vertices, cloud))
   {
@@ -235,13 +245,15 @@ void reorder (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, pcl::Ver
   }
 }
 
-float get_distance_point_place (const Eigen::Vector4f &plane, const pcl::PointNormal &point)
+float
+get_distance_point_place (const Eigen::Vector4f &plane, const pcl::PointNormal &point)
 {
   return plane (3) + point.getVector3fMap ().dot (plane.segment (0, 3));
 }
 
-float get_angle_rotation (const Eigen::Vector3f &point0, const Eigen::Vector3f &point1, const Eigen::Vector3f &center,
-                          const Eigen::Vector4f &plane)
+float
+get_angle_rotation (const Eigen::Vector3f &point0, const Eigen::Vector3f &point1, const Eigen::Vector3f &center,
+                    const Eigen::Vector4f &plane)
 {
   Eigen::Vector3f vc0 = point0 - center;
   Eigen::Vector3f vc1 = point1 - center;
@@ -258,8 +270,9 @@ float get_angle_rotation (const Eigen::Vector3f &point0, const Eigen::Vector3f &
   return angle;
 }
 
-bool Pivoter::pivot (const Edge &edge, const bool isCountAll, uint32_t &idExtended, pcl::PointNormal &centerJr,
-                     bool &isBackBool) const
+bool
+Pivoter::pivot (const Edge &edge, const bool isCountAll, uint32_t &idExtended, pcl::PointNormal &centerJr,
+                bool &isBackBool) const
 {
   const uint32_t id0 = edge.getIdVertice (0);
   const uint32_t id1 = edge.getIdVertice (1);
@@ -296,11 +309,11 @@ bool Pivoter::pivot (const Edge &edge, const bool isCountAll, uint32_t &idExtend
       continue;
     }
 
-//    if(!_is_used.at(*it) || idInvolvmentFront >= 0)
+    //    if(!_is_used.at(*it) || idInvolvmentFront >= 0)
     {
       bool is_back_bool;
-      boost::shared_ptr<pcl::PointNormal> center_jr = get_ball_center (_cloud, _kdtree, _radius, edge.isBackBall (),
-                                                                       isCountAll, _is_used, point3, is_back_bool);
+      boost::shared_ptr<pcl::PointNormal> center_jr =
+        get_ball_center (_cloud, _kdtree, _radius, edge.isBackBall (), isCountAll, _is_used, point3, is_back_bool);
 
       if (center_jr)
       {
@@ -313,19 +326,21 @@ bool Pivoter::pivot (const Edge &edge, const bool isCountAll, uint32_t &idExtend
   }
   if (!center_candidates.empty ())
   {
-    int id_min = std::distance (dot_candidates.begin (),
-                                std::min_element (dot_candidates.begin (), dot_candidates.end ()));
+    int id_min =
+      std::distance (dot_candidates.begin (), std::min_element (dot_candidates.begin (), dot_candidates.end ()));
     idExtended = id_candidates.at (id_min);
     centerJr = center_candidates.at (id_min);
     isBackBool = is_back_candidates.at (id_min);
     return true;
-  } else
+  }
+  else
   {
     return false;
   }
 }
 
-void Pivoter::prepare (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius)
+void
+Pivoter::prepare (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius)
 {
   _radius = radius;
   _cloud = cloud->makeShared ();
@@ -337,7 +352,8 @@ void Pivoter::prepare (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud,
   _front = Front ();
 }
 
-void Pivoter::proceedFront (const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
+void
+Pivoter::proceedFront (const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
 {
   Pivoter::Edge::Ptr edge;
   while (edge = _front.getActiveEdge ())
@@ -371,7 +387,8 @@ void Pivoter::proceedFront (const bool isCountAll, pcl::PolygonMesh::Ptr &mesh)
   }
 }
 
-pcl::PolygonMesh::Ptr Pivoter::proceed (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius)
+pcl::PolygonMesh::Ptr
+Pivoter::proceed (const pcl::PointCloud<pcl::PointNormal>::ConstPtr &cloud, const double radius)
 {
   assert(cloud);
   pcl::PolygonMesh::Ptr mesh (new pcl::PolygonMesh ());
@@ -391,7 +408,8 @@ pcl::PolygonMesh::Ptr Pivoter::proceed (const pcl::PointCloud<pcl::PointNormal>:
       mesh->polygons.push_back (*seed);
       // add for pivoting
       _front.addTriangle (seed, center, _radius, is_back_ball);
-    } else
+    }
+    else
     {
       // cannot find proper seed
       break;
@@ -403,7 +421,8 @@ pcl::PolygonMesh::Ptr Pivoter::proceed (const pcl::PointCloud<pcl::PointNormal>:
   return mesh;
 }
 
-bool Pivoter::findSeed (pcl::Vertices::Ptr &seed, pcl::PointNormal &center, bool &isBackBall)
+bool
+Pivoter::findSeed (pcl::Vertices::Ptr &seed, pcl::PointNormal &center, bool &isBackBall)
 {
   const double search_radius = _radius * 2.0;
 
@@ -443,8 +462,8 @@ bool Pivoter::findSeed (pcl::Vertices::Ptr &seed, pcl::PointNormal &center, bool
         index3.at (2) = index2;
 
         bool is_back_ball;
-        boost::shared_ptr<pcl::PointNormal> center_ = get_ball_center (_cloud, _kdtree, _radius, false, true, _is_used,
-                                                                       index3, is_back_ball);
+        boost::shared_ptr<pcl::PointNormal>
+          center_ = get_ball_center (_cloud, _kdtree, _radius, false, true, _is_used, index3, is_back_ball);
         if (center_)
         {
           seed = pcl::Vertices::Ptr (new pcl::Vertices ());
@@ -477,10 +496,8 @@ Pivoter::Edge::Edge (const uint32_t id0, const uint32_t id1)
 }
 
 Pivoter::Edge::Edge (const std::vector<uint32_t> &edge, const uint32_t idOpposite, const double radius,
-                     const pcl::PointNormal &center, const bool isBackBall) : _idVertices (edge),
-                                                                              _idOpposite (idOpposite),
-                                                                              _radius (radius), _center (center),
-                                                                              _isBackBall (isBackBall)
+                     const pcl::PointNormal &center, const bool isBackBall) :
+  _idVertices (edge), _idOpposite (idOpposite), _radius (radius), _center (center), _isBackBall (isBackBall)
 {
 }
 
@@ -488,45 +505,53 @@ Pivoter::Edge::~Edge ()
 {
 }
 
-double Pivoter::Edge::getRadius () const
+double
+Pivoter::Edge::getRadius () const
 {
   return _radius;
 }
 
-pcl::PointNormal Pivoter::Edge::getCenter () const
+pcl::PointNormal
+Pivoter::Edge::getCenter () const
 {
   return _center;
 }
 
-uint32_t Pivoter::Edge::getIdVertice (const size_t id) const
+uint32_t
+Pivoter::Edge::getIdVertice (const size_t id) const
 {
   assert(id < _idVertices.size ());
   return _idVertices.at (id);
 }
 
-uint32_t Pivoter::Edge::getIdOpposite () const
+uint32_t
+Pivoter::Edge::getIdOpposite () const
 {
   return _idOpposite;
 }
 
-void Pivoter::Edge::setIdVertice (const size_t id, const uint32_t idVertice)
+void
+Pivoter::Edge::setIdVertice (const size_t id, const uint32_t idVertice)
 {
   assert(id < _idVertices.size ());
   _idVertices.at (id) = idVertice;
 }
 
-bool Pivoter::Edge::isBackBall () const
+bool
+Pivoter::Edge::isBackBall () const
 {
   return _isBackBall;
 }
 
-std::pair<uint32_t, uint32_t> Pivoter::Edge::getSignature () const
+std::pair<uint32_t, uint32_t>
+Pivoter::Edge::getSignature () const
 {
   assert(_idVertices.size () == 2);
   return std::pair<uint32_t, uint32_t> (_idVertices.at (0), _idVertices.at (1));
 }
 
-std::pair<uint32_t, uint32_t> Pivoter::Edge::getSignatureReverse () const
+std::pair<uint32_t, uint32_t>
+Pivoter::Edge::getSignatureReverse () const
 {
   assert(_idVertices.size () == 2);
   return std::pair<uint32_t, uint32_t> (_idVertices.at (1), _idVertices.at (0));
@@ -541,7 +566,8 @@ Pivoter::Front::~Front ()
 {
 }
 
-Pivoter::Edge::Ptr Pivoter::Front::getActiveEdge ()
+Pivoter::Edge::Ptr
+Pivoter::Front::getActiveEdge ()
 {
   Edge::Ptr re;
   if (!_front.empty ())
@@ -553,7 +579,8 @@ Pivoter::Edge::Ptr Pivoter::Front::getActiveEdge ()
   return re;
 }
 
-void Pivoter::Front::setFeedback (const bool isBoundary)
+void
+Pivoter::Front::setFeedback (const bool isBoundary)
 {
   if (isBoundary)
   {
@@ -577,8 +604,9 @@ Pivoter::Front::addTriangle (const pcl::Vertices::ConstPtr &seed, const pcl::Poi
   }
 }
 
-void Pivoter::Front::addPoint (const Edge &lastEdge, const uint32_t idExtended, const pcl::PointNormal &center,
-                               const bool isBackBall)
+void
+Pivoter::Front::addPoint (const Edge &lastEdge, const uint32_t idExtended, const pcl::PointNormal &center,
+                          const bool isBackBall)
 {
   std::vector<uint32_t> edge (2, 0);
 
@@ -591,7 +619,8 @@ void Pivoter::Front::addPoint (const Edge &lastEdge, const uint32_t idExtended, 
   addEdge (Edge (edge, lastEdge.getIdVertice (0), lastEdge.getRadius (), center, isBackBall));
 }
 
-void Pivoter::Front::addEdge (const Edge &edge)
+void
+Pivoter::Front::addEdge (const Edge &edge)
 {
   if (!isEdgeIn (edge))
   {
@@ -599,19 +628,22 @@ void Pivoter::Front::addEdge (const Edge &edge)
   }
 }
 
-size_t Pivoter::Front::getNumActiveFront () const
+size_t
+Pivoter::Front::getNumActiveFront () const
 {
   return _front.size ();
 }
 
-bool Pivoter::Front::isEdgeIn (const Edge &edge) const
+bool
+Pivoter::Front::isEdgeIn (const Edge &edge) const
 {
   // toggle comment to delete one-directionally
   return _front.find (edge.getSignature ()) != _front.end () ||
          _front.find (edge.getSignatureReverse ()) != _front.end ();
 }
 
-int Pivoter::Front::getConditionEdgeIn (const Edge &edge, const uint32_t &idExtended) const
+int
+Pivoter::Front::getConditionEdgeIn (const Edge &edge, const uint32_t &idExtended) const
 {
   Edge ex0 = edge;
   Edge ex1 = edge;
@@ -627,25 +659,29 @@ int Pivoter::Front::getConditionEdgeIn (const Edge &edge, const uint32_t &idExte
     {
       // both (idExtend, edge[0]) and (idExtend, edge[1]) are in front
       return 2;
-    } else
+    }
+    else
     {
       // (idExtend, edge[0]) is in front
       return 0;
     }
-  } else
+  }
+  else
   {
     if (is_ex1_in)
     {
       // (idExtend, edge[1]) is in front
       return 1;
-    } else
+    }
+    else
     {
       return -1; // not in front
     }
   }
 }
 
-void Pivoter::Front::removeEdge (const uint32_t id0, const uint32_t id1)
+void
+Pivoter::Front::removeEdge (const uint32_t id0, const uint32_t id1)
 {
   if (!_front.empty ())
   {
@@ -653,7 +689,8 @@ void Pivoter::Front::removeEdge (const uint32_t id0, const uint32_t id1)
     if (loc != _front.end ())
     {
       _front.erase (loc);
-    } else // comment to delete one-directionally
+    }
+    else // comment to delete one-directionally
     {
       loc = _front.find (Signature (id1, id0));
       if (loc != _front.end ())
@@ -664,14 +701,16 @@ void Pivoter::Front::removeEdge (const uint32_t id0, const uint32_t id1)
   }
 }
 
-void Pivoter::Front::clear ()
+void
+Pivoter::Front::clear ()
 {
   _front.clear ();
   _boundary.clear ();
   _currentEdge.reset ();
 }
 
-void Pivoter::Front::prepareDirtyFix (std::vector<bool> &isUsed)
+void
+Pivoter::Front::prepareDirtyFix (std::vector<bool> &isUsed)
 {
   std::fill (isUsed.begin (), isUsed.end (), true);
   for (std::map<Signature, Edge>::iterator it = _boundary.begin (); it != _boundary.end (); ++it)
@@ -684,13 +723,15 @@ void Pivoter::Front::prepareDirtyFix (std::vector<bool> &isUsed)
   _boundary.clear ();
 }
 
-bool Pivoter::Front::isEdgeFinished (const Edge &edge)
+bool
+Pivoter::Front::isEdgeFinished (const Edge &edge)
 {
   if (_finished.find (edge.getSignature ()) != _finished.end () ||
       _finished.find (edge.getSignatureReverse ()) != _finished.end ())
   {
     return true;
-  } else
+  }
+  else
   {
     return false;
   }
