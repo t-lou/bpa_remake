@@ -12,9 +12,6 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/kdtree/kdtree.h>
 
-#include "Front.h"
-#include "Edge.h"
-
 class Pivoter
 {
 protected:
