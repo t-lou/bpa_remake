@@ -1,9 +1,0 @@
-#ifndef BPA_REMAKE
-#define BPA_REMAKE
-
-#include "Edge.h"
-#include "Pivoter.h"
-#include "Front.h"
-#include "MlsApplier.h"
-
-#endif

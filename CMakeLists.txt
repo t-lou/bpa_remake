@@ -12,11 +12,7 @@ link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
 add_executable(bpa_remake
-  src/main.cpp
-  src/Edge.cpp
-  src/Front.cpp
-  src/Pivoter.cpp
-  src/MlsApplier.cpp)
+  src/main.cpp)
 
 target_link_libraries(bpa_remake
   ${PCL_LIBRARIES})

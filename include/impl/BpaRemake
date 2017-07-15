@@ -1,9 +1,0 @@
-#ifndef BPA_REMAKE_IMPL
-#define BPA_REMAKE_IMPL
-
-#include "impl/Edge.hpp"
-#include "impl/Pivoter.hpp"
-#include "impl/Front.hpp"
-#include "impl/MlsApplier.hpp"
-
-#endif
