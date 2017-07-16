@@ -352,21 +352,30 @@ Pivoter<PointNT>::pivot (const Edge &edge, uint32_t &idExtended, PointNT &center
 
 template<typename PointNT>
 void
-Pivoter<PointNT>::prepare (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud)
+Pivoter<PointNT>::setInputCloud (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud)
 {
   _cloud = cloud->makeShared ();
+  prepare ();
+}
 
-  _kdtree.setInputCloud (cloud);
+template<typename PointNT>
+void
+Pivoter<PointNT>::prepare ()
+{
+  assert (_cloud);
+  _kdtree.setInputCloud (_cloud);
   _is_used.clear ();
-  _is_used.resize (cloud->size (), false);
-
+  _is_used.resize (_cloud->size (), false);
   _front = Front ();
+}
 
-  if (_radius < 0.0)
-  {
-    _radius = guess_radius (_kdtree);
-    std::cout << _radius << std::endl;
-  }
+template<typename PointNT>
+void
+Pivoter<PointNT>::setEstimatedRadius (const int num_sample_point, const int num_point_in_radius,
+                                      const float ratio_success)
+{
+  assert (_cloud && _kdtree.getInputCloud ()); // kdtree must be filled
+  _radius = guess_radius (_kdtree, num_sample_point, num_point_in_radius, ratio_success);
 }
 
 template<typename PointNT>
@@ -407,12 +416,16 @@ Pivoter<PointNT>::proceedFront (pcl::PolygonMesh::Ptr &mesh)
 
 template<typename PointNT>
 pcl::PolygonMesh::Ptr
-Pivoter<PointNT>::proceed (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud)
+Pivoter<PointNT>::proceed ()
 {
-  assert(cloud);
+  assert(_cloud); // preparation is done in setInputCloud
   pcl::PolygonMesh::Ptr mesh (new pcl::PolygonMesh ());
 
-  prepare (cloud);
+  // if radius is not valid, guess with default configuration (see default parameters of guess_radius)
+  if (_radius < 0.0)
+  {
+    _radius = guess_radius (_kdtree);
+  }
 
   while (true)
   {
@@ -426,7 +439,7 @@ Pivoter<PointNT>::proceed (const typename pcl::PointCloud<PointNT>::ConstPtr &cl
       // add to mesh
       mesh->polygons.push_back (*seed);
       // add for pivoting
-      _front.addTriangle (seed, center, _radius, is_back_ball);
+      _front.addTriangle (seed, center, is_back_ball);
     }
     else
     {
@@ -521,22 +534,15 @@ Pivoter<PointNT>::Edge::Edge (const uint32_t id0, const uint32_t id1)
 }
 
 template<typename PointNT>
-Pivoter<PointNT>::Edge::Edge (const std::vector<uint32_t> &edge, const uint32_t id_opposite, const double radius,
-                              const PointNT &center, const bool is_back_ball):
-  _id_vertices (edge), _id_opposite (id_opposite), _radius (radius), _center (center), _is_back_ball (is_back_ball)
+Pivoter<PointNT>::Edge::Edge (const std::vector<uint32_t> &edge, const uint32_t id_opposite, const PointNT &center,
+                              const bool is_back_ball):
+  _id_vertices (edge), _id_opposite (id_opposite), _center (center), _is_back_ball (is_back_ball)
 {
 }
 
 template<typename PointNT>
 Pivoter<PointNT>::Edge::~Edge ()
 {
-}
-
-template<typename PointNT>
-double
-Pivoter<PointNT>::Edge::getRadius () const
-{
-  return _radius;
 }
 
 template<typename PointNT>
@@ -619,9 +625,9 @@ Pivoter<PointNT>::Front::getActiveEdge ()
 
 template<typename PointNT>
 void
-Pivoter<PointNT>::Front::setFeedback (const bool isBoundary)
+Pivoter<PointNT>::Front::setFeedback (const bool is_boundary)
 {
-  if (isBoundary)
+  if (is_boundary)
   {
     _boundary[_currentEdge->getSignature ()] = *_currentEdge;
   }
@@ -630,8 +636,8 @@ Pivoter<PointNT>::Front::setFeedback (const bool isBoundary)
 
 template<typename PointNT>
 void
-Pivoter<PointNT>::Front::addTriangle (const pcl::Vertices::ConstPtr &seed, const PointNT &center, const double radius,
-                                      const bool isBackBall)
+Pivoter<PointNT>::Front::addTriangle (const pcl::Vertices::ConstPtr &seed, const PointNT &center,
+                                      const bool is_back_ball)
 {
   assert(seed->vertices.size () == 3);
   for (size_t idv = 0; idv < 3; ++idv)
@@ -640,46 +646,39 @@ Pivoter<PointNT>::Front::addTriangle (const pcl::Vertices::ConstPtr &seed, const
     edge.at (0) = seed->vertices.at (idv);
     edge.at (1) = seed->vertices.at ((idv + 2) % 3);
 
-    addEdge (Edge (edge, seed->vertices.at ((idv + 1) % 3), radius, center, isBackBall));
+    addEdge (Edge (edge, seed->vertices.at ((idv + 1) % 3), center, is_back_ball));
   }
 }
 
 template<typename PointNT>
 void
-Pivoter<PointNT>::Front::addPoint (const Edge &lastEdge, const uint32_t idExtended, const PointNT &center,
-                                   const bool isBackBall)
+Pivoter<PointNT>::Front::addPoint (const Edge &last_edge, const uint32_t id_vertice_extended, const PointNT &center,
+                                   const bool is_back_ball)
 {
   std::vector<uint32_t> edge (2, 0);
 
-  edge.at (0) = lastEdge.getIdVertice (0);
-  edge.at (1) = idExtended;
-  addEdge (Edge (edge, lastEdge.getIdVertice (1), lastEdge.getRadius (), center, isBackBall));
+  edge.at (0) = last_edge.getIdVertice (0);
+  edge.at (1) = id_vertice_extended;
+  addEdge (Edge (edge, last_edge.getIdVertice (1), center, is_back_ball));
 
-  edge.at (0) = idExtended;
-  edge.at (1) = lastEdge.getIdVertice (1);
-  addEdge (Edge (edge, lastEdge.getIdVertice (0), lastEdge.getRadius (), center, isBackBall));
+  edge.at (0) = id_vertice_extended;
+  edge.at (1) = last_edge.getIdVertice (1);
+  addEdge (Edge (edge, last_edge.getIdVertice (0), center, is_back_ball));
 }
 
 template<typename PointNT>
 void
 Pivoter<PointNT>::Front::addEdge (const Edge &edge)
 {
-  if (!isEdgeIn (edge))
+  if (!isEdgeOnFront (edge))
   {
     _front[Signature (edge.getIdVertice (0), edge.getIdVertice (1))] = edge;
   }
 }
 
 template<typename PointNT>
-size_t
-Pivoter<PointNT>::Front::getNumActiveFront () const
-{
-  return _front.size ();
-}
-
-template<typename PointNT>
 bool
-Pivoter<PointNT>::Front::isEdgeIn (const Edge &edge) const
+Pivoter<PointNT>::Front::isEdgeOnFront (const Edge &edge) const
 {
   // toggle comment to delete one-directionally
   return _front.find (edge.getSignature ()) != _front.end () ||

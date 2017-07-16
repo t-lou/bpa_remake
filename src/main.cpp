@@ -166,7 +166,9 @@ main (int argc, char **argv)
   Pivoter<pcl::PointXYZRGBNormal> pivoter;
 
   pivoter.setSearchRadius (radius);
-  pcl::PolygonMesh::Ptr mesh = pivoter.proceed (cloud_in);
+  pivoter.setInputCloud (cloud_in);
+  // pivoter.setEstimatedRadius (500, 5, 0.99f);
+  pcl::PolygonMesh::Ptr mesh = pivoter.proceed ();
   pcl::io::savePLYFileBinary (fn_out, *mesh);
   return 0;
 }
