@@ -106,7 +106,7 @@ protected:
     clear ();
 
     bool
-    isEdgeFinished (const Edge &edge);
+    isEdgeFinished (const Edge &edge) const;
 
     typedef boost::shared_ptr<Front> Ptr;
     typedef boost::shared_ptr<Front const> ConstPtr;
@@ -118,9 +118,11 @@ protected:
   std::vector<bool> _is_used;
   Front _front;
   double _radius;
+  bool _is_allow_back_ball;
+  bool _is_allow_flip;
 
   void
-  prepare (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud, const double radius);
+  prepare (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud);
 
   bool
   findSeed (pcl::Vertices::Ptr &seed, PointNT &center, bool &is_back_ball);
@@ -131,13 +133,52 @@ protected:
   void
   proceedFront (pcl::PolygonMesh::Ptr &mesh);
 
+  boost::shared_ptr<PointNT>
+  getBallCenter (const bool is_back_first, std::vector<uint32_t> &index, bool &is_back_ball) const;
+
 public:
   Pivoter ();
 
   ~Pivoter ();
 
+  void
+  setSearchRadius (const double radius)
+  {
+    _radius = radius;
+  }
+
+  double
+  getSearchRadius () const
+  {
+    return _radius;
+  }
+
+  void
+  setAllowBackBall (const bool is_allow_back_ball)
+  {
+    _is_allow_back_ball = is_allow_back_ball;
+  }
+
+  bool
+  getAllowBackBall () const
+  {
+    return _is_allow_back_ball;
+  }
+
+  void
+  setAllowFlip (const bool is_allow_flip)
+  {
+    _is_allow_flip = is_allow_flip;
+  }
+
+  bool
+  getAllowFlip () const
+  {
+    return _is_allow_flip;
+  }
+
   pcl::PolygonMesh::Ptr
-  proceed (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud, const double radius);
+  proceed (const typename pcl::PointCloud<PointNT>::ConstPtr &cloud);
 
   typedef boost::shared_ptr<Pivoter<PointNT> > Ptr;
   typedef boost::shared_ptr<Pivoter<PointNT> const> ConstPtr;

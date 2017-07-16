@@ -165,7 +165,8 @@ main (int argc, char **argv)
   pcl::PointCloud<pcl::PointXYZRGBNormal>::Ptr cloud_in = load_cloud (fn_in, radius_mls);
   Pivoter<pcl::PointXYZRGBNormal> pivoter;
 
-  pcl::PolygonMesh::Ptr mesh = pivoter.proceed (cloud_in, radius);
+  pivoter.setSearchRadius (radius);
+  pcl::PolygonMesh::Ptr mesh = pivoter.proceed (cloud_in);
   pcl::io::savePLYFileBinary (fn_out, *mesh);
   return 0;
 }
