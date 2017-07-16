@@ -219,6 +219,10 @@ protected:
   bool _is_allow_back_ball;
   /** whether the pivoting ball could flip from front face to back face or vice versa */
   bool _is_allow_flip;
+  /** threshold for avoiding collinear points */
+  double _threshold_collinear_cos;
+  /** threshold for avoiding too near points */
+  double _threshold_distance_near;
 
   /**
    * prepare the kdtree and other data for ball pivoting
