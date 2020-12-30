@@ -104,8 +104,8 @@ protected:
     std::pair<uint32_t, uint32_t>
     getSignatureReverse () const;
 
-    typedef boost::shared_ptr<Edge> Ptr;
-    typedef boost::shared_ptr<Edge const> ConstPtr;
+    typedef std::shared_ptr<Edge> Ptr;
+    typedef std::shared_ptr<Edge const> ConstPtr;
   };
 
   /**
@@ -200,8 +200,8 @@ protected:
     bool
     isEdgeFinished (const Edge &edge) const;
 
-    typedef boost::shared_ptr<Front> Ptr;
-    typedef boost::shared_ptr<Front const> ConstPtr;
+    typedef std::shared_ptr<Front> Ptr;
+    typedef std::shared_ptr<Front const> ConstPtr;
   };
 
 protected:
@@ -266,7 +266,7 @@ protected:
    * @param is_back_ball whether the pivoted ball is on back surface
    * @return
    */
-  boost::shared_ptr<PointNT>
+  std::shared_ptr<PointNT>
   getBallCenter (const bool is_back_first, std::vector<uint32_t> &index, bool &is_back_ball) const;
 
 public:
@@ -362,8 +362,8 @@ public:
   void
   setEstimatedRadius (const int num_sample_point, const int num_point_in_radius, const float ratio_success);
 
-  typedef boost::shared_ptr<Pivoter<PointNT> > Ptr;
-  typedef boost::shared_ptr<Pivoter<PointNT> const> ConstPtr;
+  typedef std::shared_ptr<Pivoter<PointNT> > Ptr;
+  typedef std::shared_ptr<Pivoter<PointNT> const> ConstPtr;
 };
 
 #endif

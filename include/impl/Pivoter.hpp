@@ -3,8 +3,7 @@
 
 #include <algorithm>
 #include <cmath>
-
-#include <boost/make_shared.hpp>
+#include <memory>
 
 #include <pcl/filters/random_sample.h>
 
@@ -80,10 +79,10 @@ num_point_in_sphere (const PointNT &center, const float radius, const pcl::KdTre
  * @return
  */
 template<typename PointNT>
-boost::shared_ptr<PointNT>
+std::shared_ptr<PointNT>
 vec2pointnormal (const Eigen::Vector3f &vector)
 {
-  boost::shared_ptr<PointNT> pt = boost::shared_ptr<PointNT> (new PointNT ());
+  std::shared_ptr<PointNT> pt = std::shared_ptr<PointNT> (new PointNT ());
   pt->getVector3fMap () = vector;
   return pt;
 }
@@ -264,10 +263,10 @@ Pivoter<PointNT>::~Pivoter ()
 }
 
 template<typename PointNT>
-boost::shared_ptr<PointNT>
+std::shared_ptr<PointNT>
 Pivoter<PointNT>::getBallCenter (const bool is_back_first, std::vector<uint32_t> &index, bool &is_back_ball) const
 {
-  boost::shared_ptr<PointNT> center;
+  std::shared_ptr<PointNT> center;
   // for checking whether three points are collinear
   const Eigen::Vector3f pos0 (_cloud->at (index.at (0)).getVector3fMap ());
   const Eigen::Vector3f pos1 (_cloud->at (index.at (1)).getVector3fMap ());
@@ -287,7 +286,7 @@ Pivoter<PointNT>::getBallCenter (const bool is_back_first, std::vector<uint32_t>
     if (radius_planar < _radius)
     {
       Eigen::Vector3f normal = vec0.cross (vec1).normalized ();
-      boost::shared_ptr<PointNT> center_candidate;
+      std::shared_ptr<PointNT> center_candidate;
       const float dist_normal = sqrt ((float) _radius * _radius - radius_planar * radius_planar);
       if (!is_normal_consistent<PointNT> (normal, index, _cloud))
       {
@@ -381,7 +380,7 @@ Pivoter<PointNT>::pivot (const Edge &edge, uint32_t &id_extended, PointNT &cente
     // the three points are different, the normal of triangle is consistent to the normal vectors or vertices
     // and the cloud[point3[2]] has distance to plane smaller than radius
     bool is_back_bool;
-    boost::shared_ptr<PointNT> center_jr = getBallCenter (edge.isBackBall (), point3, is_back_bool);
+    std::shared_ptr<PointNT> center_jr = getBallCenter (edge.isBackBall (), point3, is_back_bool);
 
     if (center_jr)
     {
@@ -556,7 +555,7 @@ Pivoter<PointNT>::findSeed (pcl::Vertices::Ptr &seed, PointNT &center, bool &is_
         index3.at (2) = index2;
 
         bool is_back_ball;
-        boost::shared_ptr<PointNT> center_ = getBallCenter (false, index3, is_back_ball);
+        std::shared_ptr<PointNT> center_ = getBallCenter (false, index3, is_back_ball);
         if (!center_ && _is_allow_back_ball)
         {
           center_ = getBallCenter (true, index3, is_back_ball);
@@ -677,7 +676,7 @@ Pivoter<PointNT>::Front::getActiveEdge ()
   typename Edge::Ptr re;
   if (!_front.empty ())
   {
-    re = boost::make_shared<Edge> (_front.begin ()->second);
+    re = std::make_shared<Edge> (_front.begin ()->second);
     _currentEdge = re;
     _front.erase (_front.begin ());
   }

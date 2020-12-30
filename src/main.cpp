@@ -1,12 +1,13 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <memory>
 
 #include <pcl/common/common_headers.h>
 #include <pcl/PolygonMesh.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/search/kdtree.h>
 #include <pcl/surface/mls.h>
 
 #include "impl/Pivoter.hpp"
@@ -41,7 +42,7 @@ smooth (const typename pcl::PointCloud<T>::ConstPtr &cloud, const double radius,
 
   mls.setInputCloud (cloud);
   mls.setComputeNormals (is_compute_normal);
-  mls.setPolynomialFit (true);
+  mls.setPolynomialOrder (2);
   mls.setSearchMethod (tree);
   mls.setSearchRadius (radius);
   mls.process (*cloud_out);
@@ -102,13 +103,13 @@ load_pointcloud2 (const std::string &filename)
   pcl::PCLPointCloud2::Ptr cloud;
   if (filename.find (".ply") != std::string::npos)
   {
-    cloud = boost::make_shared<pcl::PCLPointCloud2> (pcl::PCLPointCloud2 ());
+    cloud = std::make_shared<pcl::PCLPointCloud2> (pcl::PCLPointCloud2 ());
     pcl::PLYReader reader;
     reader.read (filename, *cloud);
   }
   else if (filename.find (".pcd") != std::string::npos)
   {
-    cloud = boost::make_shared<pcl::PCLPointCloud2> (pcl::PCLPointCloud2 ());
+    cloud = std::make_shared<pcl::PCLPointCloud2> (pcl::PCLPointCloud2 ());
     pcl::PCDReader reader;
     reader.read (filename, *cloud);
   }
