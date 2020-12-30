@@ -98,8 +98,8 @@ bool is_normal_consistent(
     const typename pcl::PointCloud<PointNT>::ConstPtr &cloud) {
   assert(indexes.size() == 3);
   int count_consistent = 0;
-  for (size_t id = 0; id < 3; ++id) {
-    if (normal.dot(cloud->at(indexes.at(id)).getNormalVector3fMap()) > 0.0f) {
+  for (const uint32_t index : indexes) {
+    if (normal.dot(cloud->at(index).getNormalVector3fMap()) > 0.0f) {
       ++count_consistent;
     }
   }
@@ -395,10 +395,8 @@ bool Pivoter<PointNT>::pivot(const Edge &edge, uint32_t &id_extended,
     id_extended = id_candidates.at(id_min);
     center_new = center_candidates.at(id_min);
     is_back_ball = is_back_candidates.at(id_min);
-    return true;
-  } else {
-    return false;
   }
+  return !center_candidates.empty();
 }
 
 template <typename PointNT>

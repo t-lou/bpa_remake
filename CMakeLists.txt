@@ -15,4 +15,4 @@ add_executable(bpa_remake
   src/main.cpp)
 
 target_link_libraries(bpa_remake
-  ${PCL_LIBRARIES})
+  ${PCL_LIBRARIES} stdc++fs)
