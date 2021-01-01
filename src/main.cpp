@@ -148,10 +148,16 @@ int main(int argc, char **argv) {
       load_cloud(fn_in, radius_mls);
   Pivoter<pcl::PointXYZRGBNormal> pivoter;
 
+  std::cout << "there are " << cloud_in->height * cloud_in->width
+            << " points in input" << std::endl;
+
   pivoter.setSearchRadius(radius);
   pivoter.setInputCloud(cloud_in);
   // pivoter.setEstimatedRadius (500, 5, 0.99f);
   pcl::PolygonMesh::Ptr mesh = pivoter.proceed();
+  std::cout << "there are " << mesh->cloud.height * mesh->cloud.width
+            << " points and " << mesh->polygons.size() << " polygons in output"
+            << std::endl;
   pcl::io::savePLYFileBinary(fn_out, *mesh);
   return 0;
 }
